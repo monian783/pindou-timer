@@ -136,30 +136,33 @@ class _SessionSheet extends StatelessWidget {
 
   Future<void> _editStart(BuildContext context) async {
     final nav = Navigator.of(context);
+    // 先把 context / messenger 取出来，await 之后就不能再碰原来的 context 了
+    final ctx = nav.context;
+    final messenger = ScaffoldMessenger.of(context);
     final se = store.sessionOf(seat.id);
     if (se == null) return;
     nav.pop();
 
     final now = DateTime.now();
     final d = await showDatePicker(
-      context: nav.context,
+      context: ctx,
       initialDate: se.startAt,
       firstDate: now.subtract(const Duration(days: 30)),
       lastDate: now,
       helpText: '选择开台日期',
     );
     if (d == null) return;
+    if (!ctx.mounted) return;
     final t = await showTimePicker(
-      context: nav.context,
+      context: ctx,
       initialTime: TimeOfDay.fromDateTime(se.startAt),
       helpText: '选择开台时间',
     );
     if (t == null) return;
     store.setStartAt(seat, DateTime(d.year, d.month, d.day, t.hour, t.minute));
-    if (nav.mounted) {
-      ScaffoldMessenger.of(nav.context)
-          .showSnackBar(const SnackBar(content: Text('已修改开台时间'), duration: Duration(seconds: 2)));
-    }
+    messenger.showSnackBar(
+      const SnackBar(content: Text('已修改开台时间'), duration: Duration(seconds: 2)),
+    );
   }
 }
 

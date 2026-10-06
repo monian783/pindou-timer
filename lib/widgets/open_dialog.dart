@@ -291,7 +291,7 @@ class _CustomCountdownState extends State<_CustomCountdown> {
     final nav = Navigator.of(context);
     store.openSeat(
       widget.seat,
-      pkgName: '自定义 ${_minutes}分钟',
+      pkgName: '自定义 $_minutes分钟',
       mode: PkgMode.countdown,
       minutes: _minutes,
       price: round2(_minutes / 60 * _hourly),

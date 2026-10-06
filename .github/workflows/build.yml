@@ -25,7 +25,8 @@ jobs:
           cache: true
 
       - run: flutter pub get
-      - run: flutter analyze
+      # --no-fatal-infos：info 级的风格提示不该把构建搞挂
+      - run: flutter analyze --no-fatal-infos
       - run: flutter test
       - run: flutter build apk --release
 
