@@ -1,17 +1,85 @@
-# pindou_timer
+# 我勒个豆计时器
 
-我勒个豆计时器
+拼豆店（手工拼豆）的**座位计时 + 收银小工具**。店员给客人开台、按套餐计时、到点自动停、结账清台，余额是虚拟记账用的。
 
-## Getting Started
+Flutter 写的，安卓和 iOS 一套代码。
 
-This project is a starting point for a Flutter application.
+## 功能
 
-A few resources to get you started if this is your first Flutter project:
+**首页**
+- 顶部分区筛选、排序（自定义顺序 / 按桌号 / 使用中优先 / 空闲优先）、桌号搜索
+- 分区分组显示桌位：空闲、倒计时 `HH:MM:SS`、正计时、已暂停、已到点，一眼能看出哪桌还在计
+- 点空闲桌位 → **开台操作**弹窗（背景模糊）：店长专属 / 通用套餐 两个分类，点套餐直接开始计时；也可以自定义倒计时、或开正计时（不限时）
+- 点使用中的桌位 → **操作面板**：结账清台 / 更换套餐 / 暂停计时 / 增加时长（加钟）/ 修改实际开台时间
+- 结账弹窗算好金额，两个按钮：**入账并清台**（余额增加）/ **清台不入账**
+- 长按桌位改名字、换分区；点一下桌位标签也能进同一套操作
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+**我的**
+- 虚拟余额（结账 "入账并清台" 才会加）
+- 套餐管理：随时加/改/删，支持倒计时和正计时两种
+- 分区与桌位：增删分区桌位，**长按桌位标签拖动排序**，按住分区左边的 ⠿ 拖动调整分区顺序
+- 计费设置：默认每小时单价、计费取整（按分钟 / 不足半小时按半小时 / **不足1小时按1小时**）、倒计时套餐提前结账怎么算
+- 结账记录：按天分组，每天显示笔数和入账合计
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+**通知栏常驻计时**
+- 有桌位在计时时，通知栏挂一条常驻通知，实时显示每桌还剩多久
+- 秒级刷新由安卓原生服务自己算（`TimerService.kt`），Flutter 只在桌位状态变化时推一次，不用一直开着 App
+- 全部清台后通知自动消失
+
+## 计费规则
+
+| 情况 | 怎么算 |
+| --- | --- |
+| 倒计时套餐，坐满 | 按套餐价 |
+| 倒计时套餐，提前结账 | 按已用时长折算，且不超过套餐价（可改成一律按套餐价） |
+| 正计时（不限时） | 已用时长 × 每小时单价 |
+| 取整方式 | 可在设置里选；选「不足1小时按1小时」时，1小时 10 块的话坐 5 分钟也收 10 块 |
+| 加钟 | 额外加收金额会加进结账总额 |
+
+数据全部存在手机本地（`shared_preferences`），不上传任何服务器，换手机不会同步。
+
+## 打包
+
+### 云端（推荐）
+
+推代码到 GitHub 后自动跑 `.github/workflows/build.yml`：
+
+- **android**：`flutter analyze` + `flutter test` + 出 release APK
+- **ios**：在 macOS runner 上出**未签名 ipa**
+- 打 `v*` tag 时，两个产物一起挂到 Release 上
+
+最新安装包：<https://github.com/monian783/pindou-timer/releases>
+
+### 本机
+
+```powershell
+flutter analyze
+flutter test
+flutter build apk --release      # -> build\app\outputs\flutter-apk\
+dart run flutter_launcher_icons  # 改了 assets/icon 之后重出图标
+```
+
+Windows 上本地构建有几个坑（工程路径必须纯英文、依赖源要走镜像、NDK 版本要对上），
+细节记在 [BUILD.md](BUILD.md) 里。
+
+## iOS 怎么装
+
+CI 出的 ipa 是**未签名**的，需要用自己的 Apple 证书重签才能装到手机上：
+
+- 有 Mac：Xcode 打开 `ios/Runner.xcworkspace`，选好 Team，Archive 直接出签名包
+- 没 Mac：用 Sideloadly / 爱思助手 之类，配合 Apple ID（免费账号签出来 7 天有效，开发者账号 1 年）
+- 想让 CI 直接出签名包：把 `.p12` 和描述文件放进 GitHub Secrets，改一下 workflow 就行
+
+## 目录
+
+```
+lib/
+  main.dart            入口 + 底部导航
+  models.dart          分区/桌位/套餐/会话/账单的数据模型
+  store.dart           全局状态、本地持久化、结账算钱
+  notify.dart          推给安卓原生服务的通知数据
+  theme.dart           配色和圆角
+  pages/               首页、我的、套餐、分区、记录、设置
+  widgets/             模糊弹窗、开台弹窗、操作面板、通用对话框
+android/.../TimerService.kt   通知栏常驻计时的前台服务
+```
