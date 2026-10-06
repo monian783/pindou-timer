@@ -149,4 +149,33 @@ void main() {
 
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets('入账清台后，记录页按天汇总', (tester) async {
+    await tester.pumpWidget(const App());
+    await settle(tester, 3);
+
+    // 开台 -> 结账 -> 入账并清台
+    await tester.tap(find.text('1号桌'));
+    await settle(tester);
+    await tester.tap(find.text('开台：按小时计费'));
+    await settle(tester);
+    await tester.tap(find.text('1号桌'));
+    await settle(tester);
+    await tester.tap(find.text('结账清台'));
+    await settle(tester);
+    await tester.tap(find.textContaining('入账并清台'));
+    await settle(tester);
+
+    // 我的 -> 结账记录
+    await tester.tap(find.text('我的'));
+    await settle(tester);
+    await tester.tap(find.text('结账记录'));
+    await settle(tester);
+
+    expect(find.text('今日入账'), findsOneWidget);
+    expect(find.text('今天'), findsOneWidget);
+    expect(find.textContaining('入账 ¥'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+  });
 }

@@ -66,6 +66,21 @@ class _RecordsPageState extends State<RecordsPage> {
     final settled = rs.where((r) => r.settled).toList();
     final sum = settled.fold<double>(0, (a, b) => a + b.amount);
 
+    final today = DateTime.now();
+    final todaySum = settled
+        .where((r) =>
+            r.endAt.year == today.year &&
+            r.endAt.month == today.month &&
+            r.endAt.day == today.day)
+        .fold<double>(0, (a, b) => a + b.amount);
+
+    // 按天分组（记录本身是新到旧，所以天也是新到旧）
+    final days = <String, List<BillRecord>>{};
+    for (final r in rs) {
+      final k = '${r.endAt.year}/${r.endAt.month}/${r.endAt.day}';
+      days.putIfAbsent(k, () => []).add(r);
+    }
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
       children: [
@@ -77,27 +92,67 @@ class _RecordsPageState extends State<RecordsPage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('入账合计', style: kSub),
+                  const Text('今日入账', style: kSub),
                   const SizedBox(height: 4),
-                  Text(fmtMoney(sum),
+                  Text(fmtMoney(todaySum),
                       style: const TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.w700, color: C.primary)),
+                          fontSize: 22, fontWeight: FontWeight.w700, color: C.primary)),
                 ],
               ),
               const Spacer(),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('共 ${rs.length} 笔', style: kSub),
+                  Text('累计 ${fmtMoney(sum)}', style: kSub),
                   const SizedBox(height: 4),
-                  Text('已入账 ${settled.length} 笔', style: kSub),
+                  Text('共 ${rs.length} 笔 · 已入账 ${settled.length} 笔', style: kSub),
                 ],
               ),
             ],
           ),
         ),
         const SizedBox(height: 12),
-        ...rs.map(_row),
+        ...days.entries.map(_dayBlock),
+      ],
+    );
+  }
+
+  /// 一天的记录：日期 + 当天合计，下面跟当天的明细
+  Widget _dayBlock(MapEntry<String, List<BillRecord>> e) {
+    final list = e.value;
+    final daySum = list.where((r) => r.settled).fold<double>(0, (a, b) => a + b.amount);
+    final d = list.first.endAt;
+    final now = DateTime.now();
+    final diff = DateTime(now.year, now.month, now.day)
+        .difference(DateTime(d.year, d.month, d.day))
+        .inDays;
+    final tag = diff == 0
+        ? '今天'
+        : diff == 1
+            ? '昨天'
+            : '${d.month}月${d.day}日';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(2, 8, 2, 8),
+          child: Row(
+            children: [
+              Text(tag,
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w600, color: C.text)),
+              const SizedBox(width: 8),
+              Text('${list.length} 笔', style: kSub),
+              const Spacer(),
+              Text('入账 ${fmtMoney(daySum)}',
+                  style: const TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w600, color: C.primary)),
+            ],
+          ),
+        ),
+        ...list.map(_row),
+        const SizedBox(height: 4),
       ],
     );
   }
@@ -144,8 +199,6 @@ class _RecordsPageState extends State<RecordsPage> {
                       '${r.pkgName} · ${fmtSpan(r.usedMs)} · ${fmtClock(r.startAt)}-${fmtClock(r.endAt)}',
                       style: kSub,
                     ),
-                    const SizedBox(height: 2),
-                    Text(fmtDay(r.endAt), style: kSub),
                   ],
                 ),
               ),

@@ -1,0 +1,12 @@
+# 统一换行符，免得 Windows 上改完推到 GitHub 之后 CI 上的脚本跑不动
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.jar binary
+*.keystore binary
+*.jks binary
+*.ttf binary
+*.otf binary
